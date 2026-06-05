@@ -25,6 +25,10 @@ export default function Header({ data, onUpdate }: Props) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editNames, setEditNames] = useState({ groom: data.settings.groomName, bride: data.settings.brideName });
 
+  // 副标题编辑状态
+  const [isEditingSubtitle, setIsEditingSubtitle] = useState(false);
+  const [editSubtitle, setEditSubtitle] = useState({ theme: data.settings.theme, venue: data.settings.venue });
+
   const saveTitle = () => {
     const updated = {
       ...data,
@@ -34,9 +38,23 @@ export default function Header({ data, onUpdate }: Props) {
     setIsEditingTitle(false);
   };
 
-  const cancelEdit = () => {
+  const cancelEditTitle = () => {
     setEditNames({ groom: data.settings.groomName, bride: data.settings.brideName });
     setIsEditingTitle(false);
+  };
+
+  const saveSubtitle = () => {
+    const updated = {
+      ...data,
+      settings: { ...data.settings, theme: editSubtitle.theme, venue: editSubtitle.venue },
+    };
+    onUpdate(updated);
+    setIsEditingSubtitle(false);
+  };
+
+  const cancelEditSubtitle = () => {
+    setEditSubtitle({ theme: data.settings.theme, venue: data.settings.venue });
+    setIsEditingSubtitle(false);
   };
 
   return (
@@ -75,7 +93,7 @@ export default function Header({ data, onUpdate }: Props) {
                 <button onClick={saveTitle} className="ml-1 p-1 rounded bg-white/20 hover:bg-white/30 text-white transition-colors">
                   <Check className="w-3.5 h-3.5" />
                 </button>
-                <button onClick={cancelEdit} className="p-1 rounded bg-white/20 hover:bg-white/30 text-white transition-colors">
+                <button onClick={cancelEditTitle} className="p-1 rounded bg-white/20 hover:bg-white/30 text-white transition-colors">
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -87,9 +105,36 @@ export default function Header({ data, onUpdate }: Props) {
                 <Pencil className="w-3.5 h-3.5 text-white/40 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             )}
-            <p className="text-sm mt-0.5 font-medium" style={{ color: 'rgba(255,255,255,0.85)' }}>
-              {data.settings.theme} · {data.settings.venue}
-            </p>
+            {isEditingSubtitle ? (
+              <div className="flex items-center gap-2 flex-wrap mt-1">
+                <input
+                  className="px-2 py-1 rounded text-sm bg-white/90 text-gray-800 outline-none w-28"
+                  value={editSubtitle.theme}
+                  onChange={e => setEditSubtitle({ ...editSubtitle, theme: e.target.value })}
+                  placeholder="婚礼主题"
+                />
+                <span className="text-white/80">·</span>
+                <input
+                  className="px-2 py-1 rounded text-sm bg-white/90 text-gray-800 outline-none w-32"
+                  value={editSubtitle.venue}
+                  onChange={e => setEditSubtitle({ ...editSubtitle, venue: e.target.value })}
+                  placeholder="婚礼场地"
+                />
+                <button onClick={saveSubtitle} className="ml-1 p-1 rounded bg-white/20 hover:bg-white/30 text-white transition-colors">
+                  <Check className="w-3.5 h-3.5" />
+                </button>
+                <button onClick={cancelEditSubtitle} className="p-1 rounded bg-white/20 hover:bg-white/30 text-white transition-colors">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="group flex items-center gap-2 cursor-pointer mt-0.5" onClick={() => setIsEditingSubtitle(true)}>
+                <p className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                  {data.settings.theme} · {data.settings.venue}
+                </p>
+                <Pencil className="w-3 h-3 text-white/40 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            )}
           </div>
         </div>
 
