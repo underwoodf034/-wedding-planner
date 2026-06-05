@@ -1,46 +1,57 @@
-import { Clock, User } from 'lucide-react';
+import { useOutletContext } from 'react-router-dom';
+import { History, Clock, User } from 'lucide-react';
 import type { WeddingData } from '../types';
 
-interface Props {
+interface OutletContext {
   data: WeddingData;
+  onUpdate: (data: WeddingData) => void;
 }
 
-export default function History({ data }: Props) {
-  const formatDate = (iso: string) => {
-    const d = new Date(iso);
-    return d.toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+export default function HistoryPage() {
+  const { data } = useOutletContext<OutletContext>();
+
+  const formatTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString('zh-CN', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold text-gray-800">📜 改动历史</h2>
-        <span className="text-sm text-gray-500">最近 100 条记录</span>
+      <div>
+        <h2 className="text-xl font-bold" style={{ color: 'var(--color-primary-dark)' }}>改动历史</h2>
+        <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>共 {data.history.length} 条操作记录</p>
       </div>
 
       <div className="card">
-        {data.history.length === 0 ? (
-          <p className="text-center text-gray-400 py-8">暂无记录</p>
-        ) : (
-          <div className="space-y-3">
-            {data.history.map(entry => (
-              <div key={entry.id} className="flex items-start gap-3 pb-3 border-b border-gray-50 last:border-0">
-                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                  <User className="w-4 h-4 text-gray-500" />
-                </div>
+        <div className="space-y-0">
+          {data.history.map((entry, index) => (
+            <div key={entry.id} className="timeline-item">
+              <div className="timeline-dot" style={{ background: index < 3 ? 'var(--color-accent)' : 'var(--color-sage)' }} />
+              <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm">{entry.user}</span>
-                    <span className="text-sm text-gray-500">{entry.action}</span>
-                    <span className="font-medium text-sm text-gray-800">{entry.item}</span>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="badge badge-green text-xs">{entry.action}</span>
+                    <span className="font-medium text-sm">{entry.item}</span>
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
-                    <Clock className="w-3 h-3" />
-                    {formatDate(entry.timestamp)}
+                  <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                    <span className="flex items-center gap-1"><User className="w-3 h-3" /> {entry.user}</span>
+                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatTime(entry.timestamp)}</span>
                   </div>
                 </div>
               </div>
-            ))}
+            </div>
+          ))}
+        </div>
+
+        {data.history.length === 0 && (
+          <div className="text-center py-8">
+            <History className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--color-sage)' }} />
+            <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>暂无操作记录</p>
           </div>
         )}
       </div>

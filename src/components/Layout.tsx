@@ -1,75 +1,96 @@
 import { useState, useEffect } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import type { WeddingData } from '../types';
-import { loadData } from '../lib/data';
+import { loadData, saveData } from '../lib/data';
+import { isSupabaseConfigured, syncToSupabase, loadFromSupabase } from '../lib/supabase';
 import Header from './Header';
-import KanbanBoard from './KanbanBoard';
-import Budget from './Budget';
-import GuestList from './GuestList';
-import History from './History';
+import MobileNav from './MobileNav';
 
 export default function Layout() {
   const [data, setData] = useState<WeddingData>(loadData);
-  const [activeTab, setActiveTab] = useState<'board' | 'budget' | 'guests' | 'history'>('board');
-  const [inviteLink, setInviteLink] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const link = `${window.location.origin}?project=wedding-2027`;
-    setInviteLink(link);
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  const copyLink = () => {
-    navigator.clipboard.writeText(inviteLink);
-    alert('邀请链接已复制！');
+  // 尝试从 Supabase 加载（如果已配置）
+  useEffect(() => {
+    if (isSupabaseConfigured()) {
+      loadFromSupabase(data.settings.projectId).then(remote => {
+        if (remote) {
+          setData(remote);
+          saveData(remote);
+        }
+      });
+    }
+  }, []);
+
+  const handleUpdate = (newData: WeddingData) => {
+    setData(newData);
+    saveData(newData);
+    // 后台同步到 Supabase
+    if (isSupabaseConfigured()) {
+      syncToSupabase(newData, newData.settings.projectId);
+    }
   };
 
-  const tabs = [
-    { id: 'board' as const, label: '📋 任务看板' },
-    { id: 'budget' as const, label: '💰 预算管理' },
-    { id: 'guests' as const, label: '👥 来宾管理' },
-    { id: 'history' as const, label: '📜 改动历史' },
-  ];
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #faf8f3 0%, #f5f2eb 100%)' }}>
       <Header data={data} />
-      
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Invite Banner */}
-        <div className="card mb-6 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-800">💒 婚礼筹备协作空间</h2>
-            <p className="text-sm text-gray-500 mt-1">婚礼日期：2027年5月15日 · 邀请家人一起规划</p>
-          </div>
-          <button onClick={copyLink} className="btn-primary flex items-center gap-2">
-            🔗 复制邀请链接
-          </button>
-        </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <div className="max-w-7xl mx-auto px-4 py-6" style={{ paddingBottom: isMobile ? '5rem' : '2rem' }}>
+        {/* 顶部导航栏（桌面端） */}
+        {!isMobile && (
+          <nav className="flex gap-2 mb-6 overflow-x-auto pb-2">
+            {navItems.map(item => (
+              <button
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap flex items-center gap-2 ${
+                  location.pathname === item.path || (item.path === '/board' && location.pathname === '/')
+                    ? 'text-white shadow-md'
+                    : 'bg-white/80 text-gray-600 hover:bg-white border border-gray-200/60'
+                }`}
+                style={
+                  location.pathname === item.path || (item.path === '/board' && location.pathname === '/')
+                    ? { background: 'linear-gradient(135deg, #2d5a3d 0%, #4a7c59 100%)' }
+                    : {}
+                }
+              >
+                <span>{item.icon}</span>
+                <span className="text-sm">{item.label}</span>
+              </button>
+            ))}
+          </nav>
+        )}
 
-        {/* Content */}
+        {/* 页面内容 */}
         <div className="animate-fade-in">
-          {activeTab === 'board' && <KanbanBoard data={data} onUpdate={setData} />}
-          {activeTab === 'budget' && <Budget data={data} onUpdate={setData} />}
-          {activeTab === 'guests' && <GuestList data={data} onUpdate={setData} />}
-          {activeTab === 'history' && <History data={data} />}
+          <Outlet context={{ data, onUpdate: handleUpdate }} />
         </div>
       </div>
+
+      {/* 移动端底部导航 */}
+      {isMobile && <MobileNav />}
     </div>
   );
 }
+
+const navItems = [
+  { path: '/board', label: '任务看板', icon: '📋' },
+  { path: '/budget', label: '预算', icon: '💰' },
+  { path: '/guests', label: '来宾', icon: '👥' },
+  { path: '/seats', label: '座位', icon: '🪑' },
+  { path: '/timeline', label: '日程', icon: '📅' },
+  { path: '/vendors', label: '供应商', icon: '🤝' },
+  { path: '/music', label: '音乐', icon: '🎵' },
+  { path: '/gifts', label: '礼物', icon: '🎁' },
+  { path: '/photos', label: '照片', icon: '📷' },
+  { path: '/settings', label: '设置', icon: '⚙️' },
+];
