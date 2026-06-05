@@ -42,7 +42,7 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #faf8f3 0%, #f5f2eb 100%)' }}>
-      <Header data={data} />
+      <Header data={data} onUpdate={handleUpdate} />
 
       <div className="max-w-7xl mx-auto px-4 py-6" style={{ paddingBottom: isMobile ? '5rem' : '2rem' }}>
         {/* 顶部导航栏（桌面端） */}
